@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1B4FDB;
+  --color-primary-dark: #1338A8;
+  --color-primary-light: #EEF2FF;
+  --color-accent: #10B981;
+  --color-accent-dark: #059669;
+  --color-highlight: #FBBF24;
+  --color-highlight-dark: #D97706;
+  --color-navy: #0F172A;
+  --color-surface: #F8FAFC;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
+
+  /* Rubik's cube face colors */
+  --color-cube-white: #FFFFFF;
+  --color-cube-yellow: #FFD500;
+  --color-cube-red: #C41E3A;
+  --color-cube-orange: #FF6B1A;
+  --color-cube-blue: #0046AD;
+  --color-cube-green: #009B48;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: #1E293B;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+/* TwistyPlayer web component sizing */
+twisty-player {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Prevent text selection during cube drag-fill */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Cube sticker hover effect */
+.sticker-cell {
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  cursor: crosshair;
+}
+.sticker-cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px rgba(27, 79, 219, 0.5);
+  z-index: 1;
+}
+
+/* Stage complete animation */
+@keyframes stageComplete {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.stage-complete {
+  animation: stageComplete 0.4s ease;
+}

@@ -10,6 +10,7 @@ import StageList from '../components/solver/StageList'
 import StepDisplay from '../components/solver/StepDisplay'
 import ResultPanel from '../components/solver/ResultPanel'
 import FaceGuide from '../components/cube/FaceGuide'
+import StartingPosition from '../components/cube/StartingPosition'
 
 function CubeTypeToggle({ cubeType, onChange }) {
   return (
@@ -52,6 +53,7 @@ export default function SolverPage() {
   const [selectedColor, setSelectedColor] = useState('white')
   const [phase, setPhase] = useState('input') // 'input' | 'solving'
   const [savedNotice, setSavedNotice] = useState(false)
+  const [positionConfirmed, setPositionConfirmed] = useState(false)
 
   const cube = useCubeState(cubeType)
   const solver = useSolver(cubeType)
@@ -62,6 +64,7 @@ export default function SolverPage() {
     cube.resetAll()
     solver.reset()
     setPhase('input')
+    setPositionConfirmed(false)
   }
 
   // Show "progress saved" toast
@@ -144,7 +147,15 @@ export default function SolverPage() {
 
         {/* ── INPUT PHASE ── */}
         {phase === 'input' && (
-          <div className="grid lg:grid-cols-[300px_1fr] gap-6">
+          <>
+          {/* Step 0 — must confirm starting position before filling */}
+          <StartingPosition
+            cubeType={cubeType}
+            confirmed={positionConfirmed}
+            onConfirm={() => setPositionConfirmed(true)}
+          />
+
+          <div className={`grid lg:grid-cols-[300px_1fr] gap-6 transition-opacity ${!positionConfirmed ? 'opacity-30 pointer-events-none select-none' : ''}`}>
 
             {/* Left — face guide (how to rotate cube + which face to fill) */}
             <div>
@@ -214,6 +225,7 @@ export default function SolverPage() {
               </button>
             </div>
           </div>
+          </>
         )}
 
         {/* ── SOLVING PHASE ── */}

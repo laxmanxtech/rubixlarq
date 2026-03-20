@@ -9,6 +9,7 @@ import CubeViewer from '../components/cube/CubeViewer'
 import StageList from '../components/solver/StageList'
 import StepDisplay from '../components/solver/StepDisplay'
 import ResultPanel from '../components/solver/ResultPanel'
+import FaceGuide from '../components/cube/FaceGuide'
 
 function CubeTypeToggle({ cubeType, onChange }) {
   return (
@@ -143,60 +144,14 @@ export default function SolverPage() {
 
         {/* ── INPUT PHASE ── */}
         {phase === 'input' && (
-          <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+          <div className="grid lg:grid-cols-[300px_1fr] gap-6">
 
-            {/* Left — how to hold + face color guide */}
-            <div className="space-y-4">
-
-              {/* How to hold */}
-              <div className="bg-[#0F172A] text-white rounded-2xl p-5">
-                <p className="font-bold text-sm mb-3 text-[#FBBF24]">📌 How to hold your cube</p>
-                {cubeType === '3x3' ? (
-                  <ol className="space-y-2 text-xs text-slate-300 list-none">
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">1.</span> Hold the cube with the <strong className="text-white">White face on top</strong></li>
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">2.</span> Hold the cube with the <strong className="text-white">Green face towards you</strong> (front)</li>
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">3.</span> Keep this position for ALL 6 faces while filling</li>
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">4.</span> Fill one face, click Next Face, rotate cube to see that face</li>
-                  </ol>
-                ) : (
-                  <ol className="space-y-2 text-xs text-slate-300 list-none">
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">1.</span> Hold the cube with <strong className="text-white">White corner on top-front-left</strong></li>
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">2.</span> Keep the same corner up for all 6 faces while filling</li>
-                    <li className="flex gap-2"><span className="text-[#10B981] font-bold">3.</span> Fill one face, click Next Face, rotate to see that face</li>
-                  </ol>
-                )}
-              </div>
-
-              {/* Face color guide */}
-              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
-                <p className="font-bold text-sm text-[#1E293B] mb-3">Which face to fill now</p>
-                <div className="space-y-2">
-                  {[
-                    { face: 'TOP',    color: '#FFFFFF', border: '#CBD5E1', label: 'Top face',    hint: 'Look at cube from above' },
-                    { face: 'RIGHT',  color: '#C41E3A', border: '#C41E3A', label: 'Right face',  hint: 'Tilt cube, right side towards you' },
-                    { face: 'FRONT',  color: '#009B48', border: '#009B48', label: 'Front face',  hint: 'The side facing you' },
-                    { face: 'BOTTOM', color: '#FFD500', border: '#A37F00', label: 'Bottom face', hint: 'Flip cube, look at bottom' },
-                    { face: 'LEFT',   color: '#FF6B1A', border: '#FF6B1A', label: 'Left face',   hint: 'Tilt cube, left side towards you' },
-                    { face: 'BACK',   color: '#0046AD', border: '#0046AD', label: 'Back face',   hint: 'Flip cube to see the back' },
-                  ].map(({ face, color, border, label, hint }, i) => {
-                    const isActive = cube.activeFaceIndex === i
-                    return (
-                      <div
-                        key={face}
-                        onClick={() => cube.setActiveFaceIndex(i)}
-                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isActive ? 'bg-[#EEF2FF] border border-[#1B4FDB]/30' : 'hover:bg-[#F8FAFC]'}`}
-                      >
-                        <div className="w-6 h-6 rounded flex-shrink-0 border" style={{ backgroundColor: color, borderColor: border }} />
-                        <div className="min-w-0">
-                          <p className={`text-xs font-bold ${isActive ? 'text-[#1B4FDB]' : 'text-[#1E293B]'}`}>{label}</p>
-                          <p className="text-[10px] text-[#94A3B8] truncate">{hint}</p>
-                        </div>
-                        {isActive && <span className="ml-auto text-[10px] font-semibold text-[#1B4FDB] flex-shrink-0">← filling</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+            {/* Left — face guide (how to rotate cube + which face to fill) */}
+            <div>
+              <FaceGuide
+                activeFaceIndex={cube.activeFaceIndex}
+                onFaceSelect={cube.setActiveFaceIndex}
+              />
             </div>
 
             {/* Right — color input */}

@@ -57,7 +57,7 @@ export default function FaceInputPanel({ faceId, colors, onColorChange, selected
     >
       <div
         className="grid gap-1.5 p-2 bg-[#1E293B] rounded-xl w-fit mx-auto"
-        style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}
+        style={{ gridTemplateColumns: `repeat(${size}, ${size === 2 ? '72px' : '56px'})` }}
       >
         {colors.map((color, index) => {
           const isCenter = isCenterCell(index)
@@ -66,8 +66,9 @@ export default function FaceInputPanel({ faceId, colors, onColorChange, selected
             <div
               key={index}
               className={`
-                w-14 h-14 rounded-lg border-2 flex items-center justify-center
+                rounded-lg border-2 flex items-center justify-center
                 transition-all duration-75 relative
+                ${size === 2 ? 'w-[72px] h-[72px]' : 'w-14 h-14'}
                 ${isCenter
                   ? 'border-white/30 cursor-default'
                   : isEmpty

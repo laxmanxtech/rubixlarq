@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { FACE_CENTER_COLORS } from '../utils/colorMap'
 
 // Default empty state — all stickers set to 'empty'
@@ -35,7 +35,13 @@ function getInitialState(cubeType) {
  */
 export function useCubeState(cubeType = '3x3') {
   const [stateByFace, setStateByFace] = useState(() => getInitialState(cubeType))
-  const [activeFaceIndex, setActiveFaceIndex] = useState(0)  // 0=U, 1=R, 2=F, 3=D, 4=L, 5=B
+  const [activeFaceIndex, setActiveFaceIndex] = useState(0)
+
+  // When cube type changes (2x2 ↔ 3x3), reset state to correct grid size
+  useEffect(() => {
+    setStateByFace(getInitialState(cubeType))
+    setActiveFaceIndex(0)
+  }, [cubeType])
 
   const activeFaceId = FACES[activeFaceIndex]
 

@@ -15,15 +15,19 @@ export function useSolver(cubeType = '3x3') {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [solutionAlg, setSolutionAlg] = useState('')    // full solution string
   const [setupAlg, setSetupAlg] = useState('')          // inverted solution (for TwistyPlayer)
-  const solverReadyRef = useRef(false)
+  const cubejsRef = useRef(null)  // caches the Cube class after first load
 
   // Lazy-load cubejs solver (only when first needed)
   const initSolver = useCallback(async () => {
-    if (solverReadyRef.current) return true
+    if (cubejsRef.current) return cubejsRef.current   // return cached class, not `true`
     try {
-      const Cube = (await import('cubejs')).default
+      const mod = await import('cubejs')
+      const Cube = mod.default ?? mod  // handle Vite CJS interop: try .default first, then mod itself
+      if (typeof Cube.initSolver !== 'function') {
+        throw new Error('cubejs loaded but initSolver not found — CJS interop issue')
+      }
       Cube.initSolver()
-      solverReadyRef.current = true
+      cubejsRef.current = Cube
       return Cube
     } catch (err) {
       console.error('Solver init error:', err)

@@ -54,6 +54,8 @@ export default function SolverPage() {
   const [phase, setPhase] = useState('input') // 'input' | 'confirming' | 'solving'
   const [savedNotice, setSavedNotice] = useState(false)
   const [positionConfirmed, setPositionConfirmed] = useState(false)
+  const [isEditingConfirm, setIsEditingConfirm] = useState(false)
+  const [editSelectedColor, setEditSelectedColor] = useState('white')
 
   const cube = useCubeState(cubeType)
   const solver = useSolver(cubeType)
@@ -271,7 +273,7 @@ export default function SolverPage() {
                   label="Your cube — all 6 faces flat view"
                 />
 
-                {/* Confirm / go back */}
+                {/* Confirm / fix colors */}
                 <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5">
                   <p className="text-sm font-semibold text-[#1E293B] mb-1">
                     Does the 3D cube above match your physical cube?
@@ -287,13 +289,116 @@ export default function SolverPage() {
                       ✓ Yes, this is my cube — Start Solving!
                     </button>
                     <button
-                      onClick={() => { solver.reset(); setPhase('input') }}
-                      className="flex-1 py-3 border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] font-semibold rounded-xl transition-colors text-sm"
+                      onClick={() => setIsEditingConfirm(e => !e)}
+                      className={`flex-1 py-3 border rounded-xl font-semibold transition-colors text-sm ${
+                        isEditingConfirm
+                          ? 'bg-[#FFF7ED] border-orange-300 text-orange-700'
+                          : 'border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC]'
+                      }`}
                     >
-                      ✗ Something's wrong — Go back and fix
+                      {isEditingConfirm ? '▲ Hide editor' : '✏️ Fix colors here'}
                     </button>
                   </div>
                 </div>
+
+                {/* Inline sticker editor — expands when user wants to fix */}
+                <AnimatePresence>
+                  {isEditingConfirm && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-white border border-orange-200 rounded-2xl p-5 space-y-4">
+                        <p className="text-sm font-bold text-[#1E293B]">Fix sticker colors</p>
+
+                        {/* Face tabs */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { id: 'U', label: 'Top', color: '#FFFFFF', border: '#CBD5E1' },
+                            { id: 'R', label: 'Right', color: '#C41E3A', border: '#C41E3A' },
+                            { id: 'F', label: 'Front', color: '#009B48', border: '#009B48' },
+                            { id: 'D', label: 'Bottom', color: '#FFD500', border: '#A37F00' },
+                            { id: 'L', label: 'Left', color: '#FF6B1A', border: '#FF6B1A' },
+                            { id: 'B', label: 'Back', color: '#0046AD', border: '#0046AD' },
+                          ].map(({ id, label, color, border }) => {
+                            const faceIndexMap = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 }
+                            const idx = faceIndexMap[id]
+                            const isActive = cube.activeFaceIndex === idx
+                            return (
+                              <button
+                                key={id}
+                                onClick={() => cube.setActiveFaceIndex(idx)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                                  isActive ? 'shadow-sm scale-105' : 'opacity-70 hover:opacity-100'
+                                }`}
+                                style={{
+                                  borderColor: border,
+                                  backgroundColor: isActive ? color + '22' : 'transparent',
+                                  color: isActive ? border : '#374151',
+                                }}
+                              >
+                                <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: color, borderColor: border }} />
+                                {label}
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        {/* Color palette (compact) */}
+                        <div className="flex flex-wrap gap-2 py-2 px-1">
+                          {Object.entries({ white: '#FFFFFF', yellow: '#FFD500', green: '#009B48', blue: '#0046AD', red: '#C41E3A', orange: '#FF6B1A' }).map(([name, hex]) => (
+                            <button
+                              key={name}
+                              onClick={() => setEditSelectedColor(name)}
+                              title={name}
+                              className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                editSelectedColor === name
+                                  ? 'border-[#1B4FDB] ring-2 ring-[#1B4FDB]/30 scale-110'
+                                  : 'border-[#E2E8F0] hover:border-[#94A3B8]'
+                              }`}
+                              style={{ backgroundColor: hex }}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Face grid */}
+                        <FaceInputPanel
+                          faceId={cube.activeFaceId}
+                          colors={cube.stateByFace[cube.activeFaceId]}
+                          onColorChange={(faceId, index, color) => cube.setSticker(faceId, index, color)}
+                          selectedColor={editSelectedColor}
+                          cubeType={cubeType}
+                        />
+
+                        {/* Validation errors */}
+                        {solver.isError && solver.errors.length > 0 && (
+                          <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-1">
+                            <p className="text-xs font-semibold text-red-700">Fix these issues:</p>
+                            {solver.errors.map((err, i) => (
+                              <p key={i} className="text-xs text-red-600">• {err}</p>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Re-solve button */}
+                        <button
+                          onClick={() => solver.solve(cube.stateByFace)}
+                          disabled={!cube.isFullyFilled || solver.isSolving}
+                          className={`w-full py-3 rounded-xl font-bold text-white text-sm transition-all ${
+                            cube.isFullyFilled && !solver.isSolving
+                              ? 'bg-[#1B4FDB] hover:bg-[#1338A8]'
+                              : 'bg-[#CBD5E1] cursor-not-allowed'
+                          }`}
+                        >
+                          {solver.isSolving ? '⏳ Re-validating...' : '↻ Re-validate & Update Preview'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </motion.div>

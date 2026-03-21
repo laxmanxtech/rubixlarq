@@ -51,7 +51,7 @@ function ProgressDots({ filled, total }) {
 export default function SolverPage() {
   const [cubeType, setCubeType] = useState('3x3')
   const [selectedColor, setSelectedColor] = useState('white')
-  const [phase, setPhase] = useState('input') // 'input' | 'solving'
+  const [phase, setPhase] = useState('input') // 'input' | 'confirming' | 'solving'
   const [savedNotice, setSavedNotice] = useState(false)
   const [positionConfirmed, setPositionConfirmed] = useState(false)
 
@@ -78,20 +78,15 @@ export default function SolverPage() {
 
   const handleSolve = async () => {
     await solver.solve(cube.stateByFace)
-    if (solver.isSolved || solver.status === 'solved') {
-      setPhase('solving')
-    }
+    // After solve, go to confirming phase so user can verify 3D preview
   }
 
-  // Watch solver status changes after solve() resolves
+  // Watch solver status — go to confirming after solve completes
   useEffect(() => {
-    if (solver.isSolved && solver.steps.length === 0) {
-      // Cube was already solved
-      setPhase('solving')
-    } else if (solver.isSolved) {
-      setPhase('solving')
+    if (solver.isSolved) {
+      setPhase('confirming')
     }
-  }, [solver.isSolved, solver.steps.length])
+  }, [solver.isSolved])
 
   const handleStartOver = () => {
     cube.resetAll()
@@ -107,16 +102,20 @@ export default function SolverPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-extrabold text-[#0F172A]">
-              {phase === 'input' ? 'Enter Your Cube Colors' : 'Step-by-Step Solution'}
+              {phase === 'input' ? 'Enter Your Cube Colors'
+                : phase === 'confirming' ? 'Confirm Your Cube'
+                : 'Step-by-Step Solution'}
             </h1>
             <p className="text-[#64748B] text-sm mt-1">
               {phase === 'input'
                 ? <>Step 1 — Pick a color below → Step 2 — Drag across stickers to fill → Step 3 — Click <strong>Next Face</strong> → repeat for all 6 faces</>
+                : phase === 'confirming'
+                ? 'Check the 3D cube below — does it match your physical cube exactly?'
                 : 'Follow the moves below one by one to solve your cube.'}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {phase === 'solving' && (
+            {(phase === 'solving' || phase === 'confirming') && (
               <button
                 onClick={handleStartOver}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#64748B] border border-[#E2E8F0] rounded-xl hover:bg-white transition-colors"
@@ -228,10 +227,14 @@ export default function SolverPage() {
           </>
         )}
 
-        {/* ── SOLVING PHASE ── */}
-        {phase === 'solving' && (
-          <>
-            {/* Already solved */}
+        {/* ── CONFIRMING PHASE — 3D preview before solving ── */}
+        {phase === 'confirming' && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto"
+          >
+            {/* Already solved case */}
             {solver.steps.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">🎉</div>
@@ -242,7 +245,64 @@ export default function SolverPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid lg:grid-cols-[1fr_200px_240px] gap-5">
+              <div className="space-y-5">
+                {/* 3D cube preview */}
+                <div className="bg-[#0F172A] rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3 border-b border-white/10 flex items-center gap-2">
+                    <span className="text-[#FBBF24] text-lg">🔍</span>
+                    <div>
+                      <p className="text-white font-bold text-sm">3D Preview — Your Scrambled Cube</p>
+                      <p className="text-slate-400 text-xs">Rotate and zoom the 3D cube to inspect all sides</p>
+                    </div>
+                  </div>
+                  <CubeViewer
+                    cubeType={cubeType}
+                    setupAlg={solver.setupAlg}
+                    alg=""
+                    height={380}
+                    showControls
+                  />
+                </div>
+
+                {/* 2D net reference */}
+                <ResultPanel
+                  stateByFace={cube.stateByFace}
+                  cubeType={cubeType}
+                  label="Your cube — all 6 faces flat view"
+                />
+
+                {/* Confirm / go back */}
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5">
+                  <p className="text-sm font-semibold text-[#1E293B] mb-1">
+                    Does the 3D cube above match your physical cube?
+                  </p>
+                  <p className="text-xs text-[#64748B] mb-4">
+                    Rotate it with your mouse and check all 6 sides. If it matches — you're good to go!
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => setPhase('solving')}
+                      className="flex-1 py-3 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-xl transition-colors text-sm"
+                    >
+                      ✓ Yes, this is my cube — Start Solving!
+                    </button>
+                    <button
+                      onClick={() => { solver.reset(); setPhase('input') }}
+                      className="flex-1 py-3 border border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] font-semibold rounded-xl transition-colors text-sm"
+                    >
+                      ✗ Something's wrong — Go back and fix
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── SOLVING PHASE ── */}
+        {phase === 'solving' && (
+          <>
+            <div className="grid lg:grid-cols-[1fr_200px_240px] gap-5">
 
                 {/* 3D cube viewer */}
                 <div className="space-y-4">
@@ -301,7 +361,6 @@ export default function SolverPage() {
                   totalSteps={solver.totalSteps}
                 />
               </div>
-            )}
           </>
         )}
       </div>

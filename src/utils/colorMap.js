@@ -64,3 +64,38 @@ export function stateTo2x2FaceletString(stateByFace) {
     stateByFace[face].map(color => colorToFace(color)).join('')
   ).join('')
 }
+
+/**
+ * Convert a 2x2 cube state into a 3x3 facelet string for the cubejs solver.
+ *
+ * The 2x2 is just the 8 corners of a 3x3. We place the 2x2 corner colors into
+ * the 3x3 corner positions and fill all edge/center positions with the solved
+ * face color. cubejs then solves the corners (= solves the 2x2).
+ *
+ * 2x2 sticker indices per face: [0=TL, 1=TR, 2=BL, 3=BR]
+ * These map to 3x3 corner positions:  [0=TL, 2=TR, 6=BL, 8=BR]
+ */
+export function convert2x2To3x3Facelets(stateByFace) {
+  const faces = ['U', 'R', 'F', 'D', 'L', 'B']
+  let facelets = ''
+  for (const face of faces) {
+    const colors = stateByFace[face]   // [TL, TR, BL, BR]
+    const c = face  // center face letter (U/R/F/D/L/B) — solved edges use this
+    // 3x3 positions [0..8]:
+    // 0=TL(corner)  1=top-edge(solved)  2=TR(corner)
+    // 3=left-edge(solved)  4=center(solved)  5=right-edge(solved)
+    // 6=BL(corner)  7=bottom-edge(solved)  8=BR(corner)
+    facelets += [
+      colorToFace(colors[0]),  // 0 TL corner
+      c,                       // 1 top edge — solved
+      colorToFace(colors[1]),  // 2 TR corner
+      c,                       // 3 left edge — solved
+      c,                       // 4 center — solved
+      c,                       // 5 right edge — solved
+      colorToFace(colors[2]),  // 6 BL corner
+      c,                       // 7 bottom edge — solved
+      colorToFace(colors[3]),  // 8 BR corner
+    ].join('')
+  }
+  return facelets
+}

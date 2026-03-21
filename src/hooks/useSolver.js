@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { stateTo3x3FaceletString } from '../utils/colorMap'
+import { stateTo3x3FaceletString, convert2x2To3x3Facelets } from '../utils/colorMap'
 import { parseAlgorithm, invertAlgorithm } from '../utils/moveParser'
 import { groupMovesFor3x3, groupMovesFor2x2, flattenStagesToSteps } from '../utils/stageGrouper'
 import { validate3x3, validate2x2 } from '../utils/cubeValidator'
@@ -81,11 +81,34 @@ export function useSolver(cubeType = '3x3') {
         setStatus('solved')
 
       } else {
-        // 2x2 — use a simplified solve approach
-        // For MVP, use cubing.js's built-in 2x2 solve if available,
-        // otherwise provide a message
-        setErrors(['2×2 solver is coming soon. Try the 3×3 solver in the meantime!'])
-        setStatus('error')
+        // 2x2 — map corners onto a 3x3 (with solved edges) and use cubejs
+        const Cube = await initSolver()
+        if (!Cube) throw new Error('Could not load solver.')
+
+        const facelets3x3 = convert2x2To3x3Facelets(stateByFace)
+        const cube = Cube.fromString(facelets3x3)
+
+        if (cube.isSolved()) {
+          setSteps([])
+          setStages([])
+          setSolutionAlg('')
+          setSetupAlg('')
+          setStatus('solved')
+          return
+        }
+
+        const solution = cube.solve()
+        const moveList = parseAlgorithm(solution)
+        const groupedStages = groupMovesFor2x2(moveList)
+        const flatSteps = flattenStagesToSteps(groupedStages)
+        const inverted = invertAlgorithm(solution)
+
+        setSolutionAlg(solution)
+        setSetupAlg(inverted)
+        setStages(groupedStages)
+        setSteps(flatSteps)
+        setCurrentStepIndex(0)
+        setStatus('solved')
       }
     } catch (err) {
       console.error('Solve error:', err)

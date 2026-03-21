@@ -110,5 +110,46 @@ export function validate2x2(stateByFace) {
 
   if (errors.length > 0) return { valid: false, errors }
 
+  // Check corner pieces — each of the 8 physical corners must be a valid triplet.
+  // (No two opposite-face colors on the same corner; all 8 unique pieces present.)
+  // Positions: [face, index] using 2x2 face arrays [TL=0, TR=1, BL=2, BR=3]
+  const CORNER_POSITIONS = {
+    UFR: [['U',3],['F',1],['R',0]],
+    UFL: [['U',2],['F',0],['L',1]],
+    UBR: [['U',1],['R',1],['B',0]],
+    UBL: [['U',0],['L',0],['B',1]],
+    DFR: [['D',1],['F',3],['R',2]],
+    DFL: [['D',0],['F',2],['L',3]],
+    DBR: [['D',3],['R',3],['B',2]],
+    DBL: [['D',2],['L',2],['B',3]],
+  }
+  const VALID_CORNERS = new Set([
+    'green,red,white','green,orange,white','blue,red,white','blue,orange,white',
+    'green,red,yellow','green,orange,yellow','blue,red,yellow','blue,orange,yellow',
+  ])
+  const FACE_LABEL = { U:'Top', R:'Right', F:'Front', D:'Bottom', L:'Left', B:'Back' }
+
+  const foundPieces = []
+  for (const [name, triples] of Object.entries(CORNER_POSITIONS)) {
+    const colors = triples.map(([f,i]) => stateByFace[f][i])
+    const key = colors.slice().sort().join(',')
+    if (!VALID_CORNERS.has(key)) {
+      const faces3 = triples.map(([f]) => FACE_LABEL[f]).join(' + ')
+      errors.push(
+        `Corner ${name} (${faces3}): colors "${colors.join(', ')}" are not a valid corner combination. ` +
+        `Check those 3 faces near that corner — two opposite-face colors (like white+yellow or green+blue) can never share a corner.`
+      )
+    } else {
+      foundPieces.push(key)
+    }
+  }
+
+  if (errors.length > 0) return { valid: false, errors }
+
+  if (new Set(foundPieces).size !== 8) {
+    errors.push('Some corner pieces appear more than once — double-check that each corner has unique colors.')
+    return { valid: false, errors }
+  }
+
   return { valid: true, errors: [] }
 }

@@ -15,7 +15,13 @@ export function useSolver(cubeType = '3x3') {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [solutionAlg, setSolutionAlg] = useState('')    // full solution string
   const [setupAlg, setSetupAlg] = useState('')          // inverted solution (for TwistyPlayer)
+  const [solveLog, setSolveLog] = useState([])          // progress messages shown while solving
   const cubejsRef = useRef(null)  // caches the Cube class after first load
+
+  const addLog = useCallback((msg) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    setSolveLog(prev => [...prev, { time, msg }])
+  }, [])
 
   // Lazy-load cubejs solver (only when first needed)
   const initSolver = useCallback(async () => {
@@ -39,90 +45,105 @@ export function useSolver(cubeType = '3x3') {
   }, [])
 
   const solve = useCallback(async (stateByFace) => {
+    setSolveLog([])
     setStatus('validating')
     setErrors([])
 
-    // Validate
+    addLog(`Validating ${cubeType} cube colors…`)
+
     const validation = cubeType === '2x2'
       ? validate2x2(stateByFace)
       : validate3x3(stateByFace)
 
     if (!validation.valid) {
+      addLog(`❌ Validation failed: ${validation.errors.length} issue(s) found`)
       setErrors(validation.errors)
       setStatus('error')
       return
     }
 
+    addLog('✓ Colors valid — all 6 faces look correct')
     setStatus('solving')
 
     try {
+      const isFirstLoad = !cubejsRef.current
+      if (isFirstLoad) addLog('Loading solver engine… (first time only — building lookup tables)')
+
+      const t0 = performance.now()
+
       if (cubeType === '3x3') {
         const Cube = await initSolver()
         if (!Cube) throw new Error('Could not load solver.')
+        if (isFirstLoad) addLog(`✓ Solver ready in ${((performance.now() - t0) / 1000).toFixed(1)}s`)
 
+        addLog('Converting face colors → facelet string…')
         const facelets = stateTo3x3FaceletString(stateByFace)
+        addLog(`  Facelet string: ${facelets}`)
         const cube = Cube.fromString(facelets)
 
         if (cube.isSolved()) {
-          // Already solved!
-          setSteps([])
-          setStages([])
-          setSolutionAlg('')
-          setSetupAlg('')
+          addLog('✓ Cube is already solved!')
+          setSteps([]); setStages([]); setSolutionAlg(''); setSetupAlg('')
           setStatus('solved')
           return
         }
 
+        addLog('Running Kociemba solver…')
+        const t1 = performance.now()
         const solution = cube.solve()
+        addLog(`✓ Solution found in ${((performance.now() - t1)).toFixed(0)}ms`)
+        addLog(`  Moves: ${solution}`)
 
         const moveList = parseAlgorithm(solution)
         const groupedStages = groupMovesFor3x3(moveList)
         const flatSteps = flattenStagesToSteps(groupedStages)
         const inverted = invertAlgorithm(solution)
+        addLog(`  Grouped into ${groupedStages.length} stages, ${flatSteps.length} steps`)
 
-        setSolutionAlg(solution)
-        setSetupAlg(inverted)
-        setStages(groupedStages)
-        setSteps(flatSteps)
-        setCurrentStepIndex(0)
-        setStatus('solved')
+        setSolutionAlg(solution); setSetupAlg(inverted)
+        setStages(groupedStages); setSteps(flatSteps)
+        setCurrentStepIndex(0); setStatus('solved')
 
       } else {
-        // 2x2 — map corners onto a 3x3 (with solved edges) and use cubejs
         const Cube = await initSolver()
         if (!Cube) throw new Error('Could not load solver.')
+        if (isFirstLoad) addLog(`✓ Solver ready in ${((performance.now() - t0) / 1000).toFixed(1)}s`)
 
+        addLog('Mapping 2×2 corners onto 3×3 facelet string…')
         const facelets3x3 = convert2x2To3x3Facelets(stateByFace)
+        addLog(`  Facelet string: ${facelets3x3}`)
         const cube = Cube.fromString(facelets3x3)
 
         if (cube.isSolved()) {
-          setSteps([])
-          setStages([])
-          setSolutionAlg('')
-          setSetupAlg('')
+          addLog('✓ Cube is already solved!')
+          setSteps([]); setStages([]); setSolutionAlg(''); setSetupAlg('')
           setStatus('solved')
           return
         }
 
+        addLog('Running Kociemba solver…')
+        const t1 = performance.now()
         const solution = cube.solve()
+        addLog(`✓ Solution found in ${((performance.now() - t1)).toFixed(0)}ms`)
+        addLog(`  Moves: ${solution}`)
+
         const moveList = parseAlgorithm(solution)
         const groupedStages = groupMovesFor2x2(moveList)
         const flatSteps = flattenStagesToSteps(groupedStages)
         const inverted = invertAlgorithm(solution)
+        addLog(`  Grouped into ${groupedStages.length} stages, ${flatSteps.length} steps`)
 
-        setSolutionAlg(solution)
-        setSetupAlg(inverted)
-        setStages(groupedStages)
-        setSteps(flatSteps)
-        setCurrentStepIndex(0)
-        setStatus('solved')
+        setSolutionAlg(solution); setSetupAlg(inverted)
+        setStages(groupedStages); setSteps(flatSteps)
+        setCurrentStepIndex(0); setStatus('solved')
       }
     } catch (err) {
       console.error('Solve error:', err)
+      addLog(`❌ Error: ${err.message}`)
       setErrors([`Solve failed: ${err.message}. Please check your cube colors and try again.`])
       setStatus('error')
     }
-  }, [cubeType, initSolver])
+  }, [cubeType, initSolver, addLog])
 
   const goToStep = useCallback((index) => {
     setCurrentStepIndex(Math.max(0, Math.min(index, steps.length - 1)))
@@ -144,6 +165,7 @@ export function useSolver(cubeType = '3x3') {
     setCurrentStepIndex(0)
     setSolutionAlg('')
     setSetupAlg('')
+    setSolveLog([])
   }, [])
 
   const currentStep = steps[currentStepIndex] || null
@@ -157,6 +179,7 @@ export function useSolver(cubeType = '3x3') {
   return {
     status,
     errors,
+    solveLog,
     steps,
     stages,
     currentStep,

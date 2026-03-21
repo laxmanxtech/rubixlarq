@@ -39,10 +39,16 @@ export default function CubeViewer({
     const el = playerRef.current
     if (!el) return
 
-    // Set via JS properties for dynamic updates
-    el.puzzle = puzzleId
-    if (alg) el.alg = alg
-    if (setupAlg) el.experimentalSetupAlg = setupAlg
+    const applyProps = () => {
+      el.puzzle = puzzleId
+      el.alg = alg || ''
+      el.experimentalSetupAlg = setupAlg || ''
+    }
+
+    // Apply immediately (works if custom element is already defined)
+    applyProps()
+    // Also apply after custom element upgrades (handles async cubing.js load)
+    customElements.whenDefined('twisty-player').then(applyProps)
   }, [puzzleId, alg, setupAlg])
 
   return (
@@ -54,8 +60,8 @@ export default function CubeViewer({
       <twisty-player
         ref={playerRef}
         puzzle={puzzleId}
-        alg={alg || ' '}
-        experimental-setup-alg={setupAlg || ' '}
+        alg={alg || ''}
+        experimental-setup-alg={setupAlg || ''}
         hint-facelets="none"
         back-view="top-right"
         visualization="3D"

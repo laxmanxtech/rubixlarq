@@ -219,11 +219,46 @@ export default function SolverPage() {
                 }`}
               >
                 {solver.isSolving
-                  ? '⏳ Solving… (may take a few seconds on first use)'
+                  ? '⏳ Solving…'
                   : !cube.isFullyFilled
                     ? `Fill all ${cube.totalStickers} stickers first (${cube.totalStickers - cube.filledCount} remaining)`
                     : 'Validate & Solve →'}
               </button>
+
+              {/* Progress log — visible while solving or after error */}
+              <AnimatePresence>
+                {solver.solveLog.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-[#0F172A] rounded-xl p-4 font-mono text-xs space-y-1">
+                      <p className="text-[#FBBF24] font-semibold mb-2 tracking-wide uppercase text-[10px]">
+                        Solver log
+                      </p>
+                      {solver.solveLog.map((entry, i) => (
+                        <div key={i} className="flex gap-2">
+                          <span className="text-[#475569] flex-shrink-0">{entry.time}</span>
+                          <span className={
+                            entry.msg.startsWith('❌') ? 'text-red-400' :
+                            entry.msg.startsWith('✓') ? 'text-[#10B981]' :
+                            entry.msg.startsWith('  ') ? 'text-[#64748B]' :
+                            'text-slate-300'
+                          }>{entry.msg}</span>
+                        </div>
+                      ))}
+                      {solver.isSolving && (
+                        <div className="flex gap-2 items-center mt-1">
+                          <span className="text-[#475569] flex-shrink-0">···</span>
+                          <span className="text-[#FBBF24] animate-pulse">working…</span>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
           </>

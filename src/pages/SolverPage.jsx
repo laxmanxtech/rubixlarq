@@ -11,6 +11,7 @@ import StepDisplay from '../components/solver/StepDisplay'
 import ResultPanel from '../components/solver/ResultPanel'
 import FaceGuide from '../components/cube/FaceGuide'
 import StartingPosition from '../components/cube/StartingPosition'
+import FaceChecker from '../components/cube/FaceChecker'
 
 function CubeTypeToggle({ cubeType, onChange }) {
   return (
@@ -56,8 +57,6 @@ export default function SolverPage() {
   const [positionConfirmed, setPositionConfirmed] = useState(false)
   const [isEditingConfirm, setIsEditingConfirm] = useState(false)
   const [editSelectedColor, setEditSelectedColor] = useState('white')
-  const [previewSetupAlg, setPreviewSetupAlg] = useState(null)  // null=closed, ''=solved, string=scrambled
-  const [previewLoading, setPreviewLoading] = useState(false)
 
   const cube = useCubeState(cubeType)
   const solver = useSolver(cubeType)
@@ -69,7 +68,6 @@ export default function SolverPage() {
     solver.reset()
     setPhase('input')
     setPositionConfirmed(false)
-    setPreviewSetupAlg(null)
   }
 
   // Show "progress saved" toast
@@ -80,14 +78,6 @@ export default function SolverPage() {
       return () => clearTimeout(t)
     }
   }, [phase])
-
-  const handlePreview = async () => {
-    setPreviewLoading(true)
-    setPreviewSetupAlg(null)
-    const alg = await solver.getPreviewAlg(cube.stateByFace)
-    setPreviewSetupAlg(alg ?? '')   // '' means already solved, string means scrambled
-    setPreviewLoading(false)
-  }
 
   const handleSolve = async () => {
     await solver.solve(cube.stateByFace)
@@ -104,7 +94,6 @@ export default function SolverPage() {
     cube.resetAll()
     solver.reset()
     setPhase('input')
-    setPreviewSetupAlg(null)
   }
 
   return (
@@ -209,13 +198,9 @@ export default function SolverPage() {
                 <ProgressDots filled={cube.filledCount} total={cube.totalStickers} />
               </div>
 
-              {/* Live 2D net preview — always visible once anything is filled */}
-              {cube.filledCount > 0 && (
-                <ResultPanel
-                  stateByFace={cube.stateByFace}
-                  cubeType={cubeType}
-                  label="Live preview — all 6 faces"
-                />
+              {/* Face checker — click each direction to verify sticker colors */}
+              {cube.isFullyFilled && (
+                <FaceChecker stateByFace={cube.stateByFace} cubeType={cubeType} />
               )}
 
               {/* Error messages */}
@@ -227,58 +212,6 @@ export default function SolverPage() {
                   ))}
                 </div>
               )}
-
-              {/* Preview in 3D — available once all stickers filled */}
-              {cube.isFullyFilled && (
-                <button
-                  onClick={handlePreview}
-                  disabled={previewLoading}
-                  className="w-full py-3 rounded-xl font-semibold text-sm border border-[#1B4FDB] text-[#1B4FDB] hover:bg-[#EEF2FF] transition-colors disabled:opacity-50"
-                >
-                  {previewLoading ? '⏳ Loading 3D preview…' : '🔍 Preview my cube in 3D first'}
-                </button>
-              )}
-
-              {/* Inline 3D preview panel */}
-              <AnimatePresence>
-                {previewSetupAlg !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="bg-[#0F172A] rounded-2xl overflow-hidden">
-                      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#FBBF24]">🔍</span>
-                          <p className="text-white font-bold text-sm">3D Preview — rotate to check all sides</p>
-                        </div>
-                        <button
-                          onClick={() => setPreviewSetupAlg(null)}
-                          className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded transition-colors"
-                        >
-                          ✕ Close
-                        </button>
-                      </div>
-                      {previewSetupAlg === '' ? (
-                        <div className="text-center py-8 text-white">
-                          <div className="text-4xl mb-2">🎉</div>
-                          <p className="font-bold">Your cube is already solved!</p>
-                        </div>
-                      ) : (
-                        <CubeViewer
-                          cubeType={cubeType}
-                          setupAlg={previewSetupAlg}
-                          alg=""
-                          height={300}
-                          showControls
-                        />
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               {/* Solve button */}
               <button

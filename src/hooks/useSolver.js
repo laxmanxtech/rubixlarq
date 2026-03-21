@@ -26,6 +26,9 @@ export function useSolver(cubeType = '3x3') {
       if (typeof Cube.initSolver !== 'function') {
         throw new Error('cubejs loaded but initSolver not found — CJS interop issue')
       }
+      // Yield to the browser's paint loop before running the blocking sync initSolver()
+      // Without this, the UI may not show "Solving..." before the tab freezes briefly.
+      await new Promise(resolve => setTimeout(resolve, 50))
       Cube.initSolver()
       cubejsRef.current = Cube
       return Cube

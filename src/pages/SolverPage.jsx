@@ -219,7 +219,7 @@ export default function SolverPage() {
                 }`}
               >
                 {solver.isSolving
-                  ? '⏳ Solving...'
+                  ? '⏳ Solving… (may take a few seconds on first use)'
                   : !cube.isFullyFilled
                     ? `Fill all ${cube.totalStickers} stickers first (${cube.totalStickers - cube.filledCount} remaining)`
                     : 'Validate & Solve →'}

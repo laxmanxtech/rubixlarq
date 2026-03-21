@@ -145,6 +145,24 @@ export function useSolver(cubeType = '3x3') {
     }
   }, [cubeType, initSolver, addLog])
 
+  // Quick preview — returns setupAlg without touching solve state or running validation.
+  // Used to show the 3D cube in the input phase before the user clicks Solve.
+  const getPreviewAlg = useCallback(async (stateByFace) => {
+    try {
+      const Cube = await initSolver()
+      if (!Cube) return null
+      const facelets = cubeType === '2x2'
+        ? convert2x2To3x3Facelets(stateByFace)
+        : stateTo3x3FaceletString(stateByFace)
+      const cube = Cube.fromString(facelets)
+      if (cube.isSolved()) return ''
+      const solution = cube.solve()
+      return invertAlgorithm(solution)
+    } catch {
+      return null
+    }
+  }, [cubeType, initSolver])
+
   const goToStep = useCallback((index) => {
     setCurrentStepIndex(Math.max(0, Math.min(index, steps.length - 1)))
   }, [steps.length])
@@ -193,6 +211,7 @@ export function useSolver(cubeType = '3x3') {
     nextStep,
     prevStep,
     reset,
+    getPreviewAlg,
     isSolving: status === 'solving' || status === 'validating',
     isSolved: status === 'solved',
     isError: status === 'error',
